@@ -1,0 +1,17 @@
+{
+  "A": 1.5e-11,
+  "D": 0.004,
+  "K_z": 800000.0,
+  "eps_K": 0.25,
+  "B_z": -0.015,
+  "alpha": 0.3,
+  "M_s": 400000.0,
+  "grid_size": 256,
+  "cell_size": 1.0,
+  "thickness": 10.0,
+  "dt": 5e-13,
+  "num_steps": 25000,
+  "save_interval": 250,
+  "use_adaptive_dt": true,
+  "max_energy_change": 1e-09
+}
