@@ -92,7 +92,12 @@ def main():
         print(f"  Energy: {sim._compute_energy():.6e} J/m²")
         print(f"  M_z mean: {np.mean(m_z):+.4f}")
         print(f"  M_z std: {np.std(m_z):.4f}")
-        print(f"\nKeep plot window open to inspect.")
+        
+        print(f"\nCreating animation from simulation frames...")
+        visualizer.close(create_animation=True)
+        
+        print(f"\nAnimation saved to outputs/ directory")
+        print(f"Keep plot window open to inspect simulation results.")
         print(f"Close window to exit.")
         
         plt.show()

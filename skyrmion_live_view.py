@@ -15,11 +15,12 @@ Usage:
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+from matplotlib.animation import FuncAnimation, PillowWriter
 from matplotlib.widgets import Button
 import matplotlib.gridspec as gridspec
 from collections import deque
 from pathlib import Path
+import os
 
 
 class LiveSkyrmionVisualizer:
@@ -33,7 +34,7 @@ class LiveSkyrmionVisualizer:
     - M_z statistics (text)
     """
     
-    def __init__(self, simulator, update_interval=50, window_size=200):
+    def __init__(self, simulator, update_interval=50, window_size=200, save_animation=True, output_dir='outputs'):
         """
         Initialize live visualizer.
         
@@ -41,10 +42,19 @@ class LiveSkyrmionVisualizer:
             simulator: SkyrmionSimulator instance
             update_interval: Update display every N steps
             window_size: Keep last N measurements for scrolling plots
+            save_animation: If True, save animation frames for MP4 creation
+            output_dir: Directory to save animation files
         """
         self.sim = simulator
         self.update_interval = update_interval
         self.window_size = window_size
+        self.save_animation = save_animation
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(exist_ok=True)
+        
+        # Animation frame storage
+        self.frame_counter = 0
+        self.frame_data = []  # Store frame data for MP4 creation
         
         # Data buffers (rolling windows)
         self.steps_buffer = deque(maxlen=window_size)
@@ -192,9 +202,94 @@ class LiveSkyrmionVisualizer:
         # Redraw
         self.fig.canvas.draw_idle()
         plt.pause(0.001)  # Small pause for display update
+        
+        # Save frame if animation saving enabled
+        if self.save_animation and step % self.update_interval == 0:
+            self._save_frame()
     
-    def close(self):
-        """Close the visualization window."""
+    def _save_frame(self):
+        """Capture and save current figure as PNG frame for animation."""
+        frame_path = self.output_dir / f'frame_{self.frame_counter:05d}.png'
+        self.fig.savefig(frame_path, dpi=100, bbox_inches='tight')
+        self.frame_data.append(frame_path)
+        self.frame_counter += 1
+    
+    def create_animation(self, output_filename='skyrmion_evolution.gif', fps=10):
+        """Create animated GIF or MP4 from saved frames, then delete PNG frames."""
+        if not self.frame_data:
+            print("No frames saved - cannot create animation.")
+            return
+        
+        print(f"\nCreating animation from {len(self.frame_data)} frames...")
+        
+        try:
+            import imageio
+            
+            # Read all frames
+            frames = []
+            print(f"Reading frames from {self.output_dir}...")
+            for i, frame_path in enumerate(self.frame_data):
+                if frame_path.exists():
+                    frames.append(imageio.imread(str(frame_path)))
+                    if (i + 1) % 50 == 0:
+                        print(f"  Loaded {i + 1}/{len(self.frame_data)} frames")
+            
+            if not frames:
+                print("ERROR: No frames were successfully read!")
+                return
+            
+            print(f"Successfully loaded {len(frames)} frames")
+            
+            output_path = self.output_dir / output_filename
+            
+            if output_filename.endswith('.mp4'):
+                # Save as MP4
+                print(f"Writing MP4 to {output_path}...")
+                imageio.mimsave(str(output_path), frames, fps=fps)
+                print(f"✓ MP4 animation saved: {output_path}")
+            else:
+                # Save as GIF (default)
+                print(f"Writing GIF to {output_path}...")
+                imageio.mimsave(str(output_path), frames, duration=1000//fps)
+                print(f"✓ GIF animation saved: {output_path}")
+                
+                # Also create MP4 if possible
+                try:
+                    mp4_path = self.output_dir / 'skyrmion_evolution.mp4'
+                    print(f"Writing MP4 to {mp4_path}...")
+                    imageio.mimsave(str(mp4_path), frames, fps=fps)
+                    print(f"✓ MP4 animation also saved: {mp4_path}")
+                except Exception as e:
+                    print(f"Could not create MP4 (imageio-ffmpeg may be needed): {e}")
+                    print("GIF animation is available for viewing.")
+            
+            # Clean up individual PNG frame files
+            print(f"\nCleaning up {len(self.frame_data)} frame files...")
+            deleted_count = 0
+            for frame_path in self.frame_data:
+                try:
+                    if frame_path.exists():
+                        frame_path.unlink()
+                        deleted_count += 1
+                except Exception as e:
+                    print(f"Warning: Could not delete {frame_path}: {e}")
+            print(f"Deleted {deleted_count} frame files.")
+                
+        except ImportError as e:
+            print(f"ERROR: imageio not installed: {e}")
+            print("Install with: pip install imageio imageio-ffmpeg")
+            print(f"Frame PNG files are in: {self.output_dir}")
+            print(f"You can manually create animation from {len(self.frame_data)} frames.")
+        except Exception as e:
+            print(f"ERROR creating animation: {e}")
+            import traceback
+            traceback.print_exc()
+            print(f"Frame PNG files are preserved in: {self.output_dir}")
+    
+    def close(self, create_animation=True):
+        """Close the visualization window and optionally create animation file."""
+        if create_animation and self.save_animation and self.frame_data:
+            self.create_animation()
         plt.close(self.fig)
 
 
