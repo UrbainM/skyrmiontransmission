@@ -8,6 +8,7 @@ Project Summary and Usage Guide
 Version: 1.0.0
 Date: December 2024
 """
+![til](/outputs/skyrmion_evolution.gif)
 
 import sys
 from pathlib import Path
