@@ -6,7 +6,7 @@ SKYRMION MANIFOLD DATA TRANSMISSION SIMULATOR
 Project Summary and Usage Guide
 
 Version: 1.0.0
-Date: December 2024
+Date: December 2025
 """
 ![til](/outputs/skyrmion_evolution.gif)
 
